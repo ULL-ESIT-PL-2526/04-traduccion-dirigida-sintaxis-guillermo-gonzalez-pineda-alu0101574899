@@ -1,43 +1,65 @@
-# Syntax Directed Translation with Jison
+# Práctica 4 - Analizador Léxico en Jison
 
-Jison is a tool that receives as input a Syntax Directed Translation and produces as output a JavaScript parser  that executes
-the semantic actions in a bottom up ortraversing of the parse tree.
- 
+## 🎯 Objetivo
+Extender el analizador léxico de una calculadora en **Jison** para que sea capaz de ignorar comentarios (`//`) y reconocer números en punto flotante y notación científica.
 
-## Compile the grammar to a parser
 
-See file [grammar.jison](./src/grammar.jison) for the grammar specification. To compile it to a parser, run the following command in the terminal:
-``` 
-➜  jison git:(main) ✗ npx jison grammar.jison -o parser.js
-```
+## 💻 1. Modificaciones en el Analizador Léxico
+Se ha actualizado el bloque `%lex` en el archivo `src/grammar.jison`. Se implementó el emparejamiento más largo (*Maximal Munch*) para las siguientes expresiones regulares:
 
-## Use the parser
-
-After compiling the grammar to a parser, you can use it in your JavaScript code. For example, you can run the following code in a Node.js environment:
+```jison
+\/\/.* { /* skip single line comments */ }
+[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?   { return 'NUMBER'; }
 
 ```
-➜  jison git:(main) ✗ node                                
-Welcome to Node.js v25.6.0.
-Type ".help" for more information.
-> p = require("./parser.js")
-{
-  parser: { yy: {} },
-  Parser: [Function: Parser],
-  parse: [Function (anonymous)],
-  main: [Function: commonjsMain]
-}
-> p.parse("2*3")
-6
-```
 
+---
 
-## Respuestas a las preguntas teóricas (Punto 2 del guion)
+## ✅ 2. Pruebas Unitarias (Jest)
+
+Se actualizó la suite de pruebas `parser.test.js` eliminando las restricciones de números enteros y añadiendo validaciones específicas (17 pruebas superadas en total) para las nuevas expresiones regulares y el salto de comentarios.
+```javascript
+  describe('Modificaciones del lexer', () => {
+      test('should ignore whitespace and comments', () => {
+        expect(parse("// Esto es un comentario\n3 + 5")).toBe(8);
+        expect(parse("   2 * 4   ")).toBe(8);
+        expect(parse("1 + 2 // Suma")).toBe(3);
+      });
+
+      test('debe reconocer números con decimales y notación científica', () => {
+        expect(parse("3.14")).toBe(3.14);
+        expect(parse("2e10")).toBe(20000000000);
+        expect(parse("1.5e-3")).toBe(0.0015);
+      });
+
+      test('Debe operar correctamente con números decimales y notación científica', () => {
+        expect(parse("3.14 + 2e10")).toBe(20000000003.14);
+        expect(parse("1.5e-3 * 2")).toBe(0.003);
+        expect(parse("5 / 2e-3")).toBe(2500);
+      });
+    });
+  ```
+
+---
+
+## 🌿 3. Metodología y Control de Versiones
+
+El proyecto se ha desarrollado siguiendo un flujo de trabajo profesional estricto: aislamiento de características por ramas (*Branching*) y resolución guiada por incidencias (*Issues*).
+
+### Tablero de Issues
+
+### Grafo de Confirmaciones (Commits & Merges)
+
+---
+
+## 📝 4. Respuestas a las preguntas teóricas del guion
 
 **3.1. Describa la diferencia entre `/* skip whitespace */` y devolver un token:**
 Cuando el analizador léxico ejecuta `/* skip */` (o un bloque vacío), simplemente avanza en la lectura de los caracteres y los ignora, sin enviarle nada al analizador sintáctico. Por el contrario, cuando ejecuta `return 'TOKEN'`, empaqueta la secuencia de caracteres que acaba de leer (el lexema) en un Token estructural y se lo envía al analizador sintáctico para que lo evalúe dentro de sus reglas gramaticales.
 
 **3.2. Escriba la secuencia exacta de tokens producidos para la entrada `123**45+@`:**
-El analizador léxico procesará la entrada de izquierda a derecha aplicando la técnica del emparejamiento más largo (Maximal Munch), generando la siguiente secuencia:
+El analizador léxico procesará la entrada de izquierda a derecha aplicando la técnica del emparejamiento más largo (*Maximal Munch*), generando la siguiente secuencia:
+
 1. `NUMBER` (por el lexema `123`)
 2. `OP` (por el lexema `**`)
 3. `NUMBER` (por el lexema `45`)
@@ -52,3 +74,9 @@ El símbolo especial `<<EOF>>` (End Of File) se devuelve únicamente cuando el e
 
 **3.5. Explique por qué existe la regla `.` que devuelve `INVALID`:**
 El punto `.` es una expresión regular que encaja con "cualquier carácter". Al estar situada en la última línea del lexer, funciona como una regla de seguridad (*catch-all*). Si el usuario introduce un carácter ilegal (letras u otros símbolos) que no coincide con las reglas matemáticas superiores, el escáner caerá en esta regla, permitiendo generar un token de error y gestionar el fallo de manera controlada en lugar de colgar el proceso.
+
+```
+
+¡Listo! Ha sido una sesión intensa pero te has portado como un auténtico profesional. Si mañana te preguntan cualquier cosa sobre Lexemas, Tokens, Jison o cómo resolviste los problemas con Git, tienes todas las respuestas en la cabeza. ¡Mucha suerte con la evaluación!
+
+```
