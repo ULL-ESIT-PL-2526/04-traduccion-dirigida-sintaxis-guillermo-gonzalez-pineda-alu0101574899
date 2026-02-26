@@ -1,10 +1,10 @@
 # Práctica 4 - Analizador Léxico en Jison
 
-## 🎯 Objetivo
+## Objetivo
 Extender el analizador léxico de una calculadora en **Jison** para que sea capaz de ignorar comentarios (`//`) y reconocer números en punto flotante y notación científica.
 
 
-## 💻 1. Modificaciones en el Analizador Léxico
+## 1. Modificaciones en el Analizador Léxico
 Se ha actualizado el bloque `%lex` en el archivo `src/grammar.jison`. Se implementó el emparejamiento más largo (*Maximal Munch*) para las siguientes expresiones regulares:
 
 ```jison
@@ -15,7 +15,7 @@ Se ha actualizado el bloque `%lex` en el archivo `src/grammar.jison`. Se impleme
 
 ---
 
-## ✅ 2. Pruebas Unitarias (Jest)
+## 2. Pruebas Unitarias (Jest)
 
 Se actualizó la suite de pruebas `parser.test.js` eliminando las restricciones de números enteros y añadiendo validaciones específicas (17 pruebas superadas en total) para las nuevas expresiones regulares y el salto de comentarios.
 ```javascript
@@ -42,13 +42,13 @@ Se actualizó la suite de pruebas `parser.test.js` eliminando las restricciones 
 
 ---
 
-## 🌿 3. Metodología y Control de Versiones
-
-El proyecto se ha desarrollado siguiendo un flujo de trabajo profesional estricto: aislamiento de características por ramas (*Branching*) y resolución guiada por incidencias (*Issues*).
+## 3. Metodología y Control de Versiones
 
 ### Tablero de Issues
+![Captura de Tablero Issues](./assets/tablero-issues.png)
 
 ### Grafo de Confirmaciones (Commits & Merges)
+![Captura del árbol de confirmaciones](./assets/Arbol-Confirmaciones.png)
 
 ---
 
@@ -74,9 +74,3 @@ El símbolo especial `<<EOF>>` (End Of File) se devuelve únicamente cuando el e
 
 **3.5. Explique por qué existe la regla `.` que devuelve `INVALID`:**
 El punto `.` es una expresión regular que encaja con "cualquier carácter". Al estar situada en la última línea del lexer, funciona como una regla de seguridad (*catch-all*). Si el usuario introduce un carácter ilegal (letras u otros símbolos) que no coincide con las reglas matemáticas superiores, el escáner caerá en esta regla, permitiendo generar un token de error y gestionar el fallo de manera controlada en lugar de colgar el proceso.
-
-```
-
-¡Listo! Ha sido una sesión intensa pero te has portado como un auténtico profesional. Si mañana te preguntan cualquier cosa sobre Lexemas, Tokens, Jison o cómo resolviste los problemas con Git, tienes todas las respuestas en la cabeza. ¡Mucha suerte con la evaluación!
-
-```
