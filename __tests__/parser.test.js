@@ -110,7 +110,6 @@ describe('Parser Tests', () => {
       expect(() => parse("3 +")).toThrow();
       expect(() => parse("+ 3")).toThrow();
       expect(() => parse("3 + + 4")).toThrow();
-      expect(() => parse("3.5")).toThrow(); // Only integers are supported
     });
 
     test('should handle incomplete expressions', () => {
@@ -125,6 +124,26 @@ describe('Parser Tests', () => {
       expect(parse("1 - 2")).toBe(-1);
       expect(parse("10 - 4 - 3")).toBe(3);
       expect(parse("7 - 5 - 1")).toBe(1);
+    });
+  });
+
+  describe('Modificaciones del lexer', () => {
+    test('should ignore whitespace and comments', () => {
+      expect(parse("// Esto es un comentario\n3 + 5")).toBe(8);
+      expect(parse("   2 * 4   ")).toBe(8);
+      expect(parse("1 + 2 // Suma")).toBe(3);
+    });
+
+    test('debe reconocer números con decimales y notación científica', () => {
+      expect(parse("3.14")).toBe(3.14);
+      expect(parse("2e10")).toBe(20000000000);
+      expect(parse("1.5e-3")).toBe(0.0015);
+    });
+
+    test('Debe operar correctamente con números decimales y notación científica', () => {
+      expect(parse("3.14 + 2e10")).toBe(20000000003.14);
+      expect(parse("1.5e-3 * 2")).toBe(0.003);
+      expect(parse("5 / 2e-3")).toBe(2500);
     });
   });
 
