@@ -74,3 +74,133 @@ El símbolo especial `<<EOF>>` (End Of File) se devuelve únicamente cuando el e
 
 **3.5. Explique por qué existe la regla `.` que devuelve `INVALID`:**
 El punto `.` es una expresión regular que encaja con "cualquier carácter". Al estar situada en la última línea del lexer, funciona como una regla de seguridad (*catch-all*). Si el usuario introduce un carácter ilegal (letras u otros símbolos) que no coincide con las reglas matemáticas superiores, el escáner caerá en esta regla, permitiendo generar un token de error y gestionar el fallo de manera controlada en lugar de colgar el proceso.
+
+---
+
+
+
+# Práctica 5 - Precedencia y Asociatividad
+
+## 1. Análisis de la Gramática Base
+
+### 1.1. Derivación para cada una de las frases
+
+**Frase 1: `4.0 - 2.0 * 3.0`**
+Aplicando derivación por la izquierda:
+$E \Rightarrow E \text{ op } T$
+$\Rightarrow E \text{ op } T \text{ op } T$
+$\Rightarrow T \text{ op } T \text{ op } T$
+$\Rightarrow \text{number} \text{ op } T \text{ op } T$
+$\Rightarrow 4.0 \text{ op } T \text{ op } T$
+$\Rightarrow 4.0 \text{ - } T \text{ op } T$
+$\Rightarrow 4.0 \text{ - } \text{number} \text{ op } T$
+$\Rightarrow 4.0 \text{ - } 2.0 \text{ op } T$
+$\Rightarrow 4.0 \text{ - } 2.0 \text{ * } T$
+$\Rightarrow 4.0 \text{ - } 2.0 \text{ * } \text{number}$
+$\Rightarrow 4.0 \text{ - } 2.0 \text{ * } 3.0$
+
+**Frase 2: `2 ** 3 ** 2`**
+Aplicando derivación por la izquierda:
+$E \Rightarrow E \text{ op } T$
+$\Rightarrow E \text{ op } T \text{ op } T$
+$\Rightarrow T \text{ op } T \text{ op } T$
+$\Rightarrow \text{number} \text{ op } T \text{ op } T$
+$\Rightarrow 2 \text{ op } T \text{ op } T$
+$\Rightarrow 2 \text{ ** } T \text{ op } T$
+$\Rightarrow 2 \text{ ** } \text{number} \text{ op } T$
+$\Rightarrow 2 \text{ ** } 3 \text{ op } T$
+$\Rightarrow 2 \text{ ** } 3 \text{ ** } T$
+$\Rightarrow 2 \text{ ** } 3 \text{ ** } \text{number}$
+$\Rightarrow 2 \text{ ** } 3 \text{ ** } 2$
+
+**Frase 3: `7 - 4 / 2`**
+Aplicando derivación por la izquierda:
+$E \Rightarrow E \text{ op } T$
+$\Rightarrow E \text{ op } T \text{ op } T$
+$\Rightarrow T \text{ op } T \text{ op } T$
+$\Rightarrow \text{number} \text{ op } T \text{ op } T$
+$\Rightarrow 7 \text{ op } T \text{ op } T$
+$\Rightarrow 7 \text{ - } T \text{ op } T$
+$\Rightarrow 7 \text{ - } \text{number} \text{ op } T$
+$\Rightarrow 7 \text{ - } 4 \text{ op } T$
+$\Rightarrow 7 \text{ - } 4 \text{ / } T$
+$\Rightarrow 7 \text{ - } 4 \text{ / } \text{number}$
+$\Rightarrow 7 \text{ - } 4 \text{ / } 2$
+
+
+### 1.2. Árboles de Análisis Sintáctico (Parse Trees)
+
+Al utilizar la gramática base (`E -> E OP T | T`), la recursividad por la izquierda fuerza a que el árbol crezca siempre hacia la izquierda, lo que demuestra la ausencia de precedencia de operadores y la estricta asociatividad por la izquierda para todas las operaciones.
+
+**Frase 1: `4.0 - 2.0 * 3.0`**
+
+
+```text
+         E
+       / | \
+      /  |  \
+     E   OP  T
+   / | \ (*) |
+  E  OP T   3.0
+  | (-) |
+  T    2.0
+  |
+ 4.0
+```
+
+**Frase 2: `2 ** 3 ** 2`**
+```text
+         E
+       / | \
+      /  |  \
+     E   OP  T
+   / | \ (**) |
+  E  OP T     2
+  | (**) |
+  T      3
+  |
+  2
+```
+
+**Frase 3: `7 - 4 / 2`**
+```text
+         E
+       / | \
+      /  |  \
+     E   OP  T
+   / | \ (-) |
+  E  OP T    2
+  | (/) |
+  T     4
+  |
+  7
+```
+
+
+### 1.3. Orden de evaluación de las acciones semánticas
+
+Como Jison genera un analizador sintáctico ascendente (LALR), las acciones semánticas se ejecutan en el momento en que se realizan las reducciones (de las hojas hacia la raíz). Al utilizar una única regla recursiva por la izquierda (`E -> E OP T`), el orden de evaluación fuerza a agrupar siempre los operandos de izquierda a derecha.
+
+**Frase 1: `4.0 - 2.0 * 3.0`**
+1. Se lee `4.0` y se reduce a `E` (Valor = 4.0).
+2. Se lee `-` y `2.0`, reduciendo `2.0` a `T`.
+3. **Primera acción semántica:** Se reduce `E - T`. Se calcula $4.0 - 2.0 = 2.0$. (El nuevo valor de `E` es 2.0).
+4. Se lee `*` y `3.0`, reduciendo `3.0` a `T`.
+5. **Segunda acción semántica:** Se reduce `E * T`. Se calcula $2.0 * 3.0 = 6.0$.
+* **Fallo matemático:** La multiplicación debería tener precedencia sobre la resta. El resultado correcto en matemáticas sería $-2.0$, no $6.0$.
+
+**Frase 2: `2 ** 3 ** 2`**
+1. Se lee `2` y se reduce a `E` (Valor = 2).
+2. Se lee `**` y `3`, reduciendo `3` a `T`.
+3. **Primera acción semántica:** Se reduce `E ** T`. Se calcula $2^3 = 8$. (El nuevo valor de `E` es 8).
+4. Se lee `**` y `2`, reduciendo `2` a `T`.
+5. **Segunda acción semántica:** Se reduce `E ** T`. Se calcula $8^2 = 64$.
+* **Fallo matemático:** El operador de potencia (`**`) en matemáticas y programación es asociativo por la derecha ($2^{(3^2)}$), por lo que el resultado correcto debería ser $2^9 = 512$, no $64$.
+
+**Frase 3: `7 - 4 / 2`**
+1. Se lee `7` y se reduce a `E` (Valor = 7).
+2. Se lee `-` y `4`, reduciendo `4` a `T`.
+3. **Primera acción semántica:** Se reduce `E - T`. Se calcula $7 - 4 = 3$. (El nuevo valor de `E` es 3).
+4. Se lee `/` y `2`, reduciendo `2` a `T`.
+5. **Segunda acción semántica:** Se reduce `E / T`. Se calcula $3 / 2 = 1.5$.
+* **Fallo matemático:** La división debería tener precedencia sobre la resta. El resultado correcto en matemáticas sería $7 - 2 = 5$, no $1.5$.
