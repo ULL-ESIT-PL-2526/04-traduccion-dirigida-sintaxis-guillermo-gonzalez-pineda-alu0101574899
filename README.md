@@ -204,3 +204,40 @@ Como Jison genera un analizador sintáctico ascendente (LALR), las acciones sem�
 4. Se lee `/` y `2`, reduciendo `2` a `T`.
 5. **Segunda acción semántica:** Se reduce `E / T`. Se calcula $3 / 2 = 1.5$.
 * **Fallo matemático:** La división debería tener precedencia sobre la resta. El resultado correcto en matemáticas sería $7 - 2 = 5$, no $1.5$.
+
+
+### 1.4. Análisis de Fallos: Precedencia y Asociatividad de Operadores
+
+Al ejecutar la nueva suite de pruebas `prec.test.js`, hemos detectado que nuestro analizador sintáctico (parser) actual falla en múltiples escenarios. El problema raíz es que el parser evalúa las expresiones estrictamente **de izquierda a derecha**, ignorando por completo las reglas matemáticas fundamentales de precedencia y asociatividad.
+
+A continuación, se desglosan los fallos por categoría:
+
+#### 1. Multiplicación/División vs. Suma/Resta
+El parser no respeta que la multiplicación (`*`) y la división (`/`) deben resolverse antes que la suma (`+`) y la resta (`-`).
+
+* **Expresión:** `2 + 3 * 4`
+    * **Esperado:** `14` (Calculando primero `3 * 4 = 12`, luego `2 + 12`).
+    * **Recibido:** `20` (El parser hizo `(2 + 3) * 4`).
+* **Expresión:** `1 + 2 * 3 - 4`
+    * **Esperado:** `3` (Calculando `1 + 6 - 4`).
+    * **Recibido:** `5` (El parser hizo `(((1 + 2) * 3) - 4)`).
+* **Expresión:** `1 + 2 * 3`
+    * **Esperado:** `7` (Calculando `1 + 6`).
+    * **Recibido:** `9` (El parser hizo `(1 + 2) * 3`).
+
+#### 2. Precedencia de la Exponenciación
+La exponenciación (`**`) tiene la precedencia más alta en matemáticas básicas (antes que la multiplicación/división y suma/resta). Nuestro parser actual la evalúa al mismo nivel que el resto.
+
+* **Expresión:** `2 + 3 ** 2`
+    * **Esperado:** `11` (Calculando primero `3 ** 2 = 9`, luego `2 + 9`).
+    * **Recibido:** `25` (El parser hizo `(2 + 3) ** 2 = 5 ** 2`).
+* **Expresión:** `3 + 2 ** 4`
+    * **Esperado:** `19` (Calculando primero `2 ** 4 = 16`, luego `3 + 16`).
+    * **Recibido:** `625` (El parser hizo `(3 + 2) ** 4 = 5 ** 4`).
+
+#### 3. Asociatividad a la Derecha
+La mayoría de operadores (como `+`, `-`, `*`, `/`) son asociativos a la izquierda (ej. `a - b - c` es `(a - b) - c`). Sin embargo, **la exponenciación es asociativa a la derecha** (`a ** b ** c` debe ser `a ** (b ** c)`). Nuestro parser no contempla esta regla.
+
+* **Expresión:** `2 ** 3 ** 2`
+    * **Esperado:** `512` (Calculando primero la parte derecha `3 ** 2 = 9`, resultando en `2 ** 9`).
+    * **Recibido:** `64` (El parser evaluó de izquierda a derecha: `(2 ** 3) ** 2 = 8 ** 2`).
