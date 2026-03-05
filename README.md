@@ -241,3 +241,27 @@ La mayoría de operadores (como `+`, `-`, `*`, `/`) son asociativos a la izquier
 * **Expresión:** `2 ** 3 ** 2`
     * **Esperado:** `512` (Calculando primero la parte derecha `3 ** 2 = 9`, resultando en `2 ** 9`).
     * **Recibido:** `64` (El parser evaluó de izquierda a derecha: `(2 ** 3) ** 2 = 8 ** 2`).
+
+
+## Paso 2: Precedencia y Asociatividad en la Gramática (Issue #6)
+
+En este paso se ha refactorizado el analizador sintáctico (parser) en Jison para que evalúe las expresiones matemáticas siguiendo el orden estándar de precedencia y asociatividad, solucionando la evaluación errónea de izquierda a derecha.
+
+En lugar de utilizar directivas mágicas de Jison (como `%left` o `%right`), el problema se ha resuelto puramente desde el diseño de la **Gramática Libre de Contexto**, estructurando las producciones en niveles jerárquicos:
+
+* **Jerarquía de Precedencia (Niveles de Profundidad):**
+  * `E` (Expresión): Maneja las sumas y restas (`OPAD`). Es el nivel más superficial.
+  * `T` (Término): Maneja multiplicaciones y divisiones (`OPMU`). Al estar un nivel por debajo de `E`, el parser está obligado a resolverlas antes que las sumas.
+  * `R` (Raíz/Potencia): Maneja la exponenciación (`OPOW`). Tiene la precedencia matemática más alta antes de llegar al número literal.
+  * `F` (Factor): El nivel base que extrae el token numérico (`NUMBER`).
+
+* **Asociatividad:**
+  * **Izquierda:** Las reglas aditivas y multiplicativas usan recursividad por la izquierda (`E -> E OPAD T`), agrupando operaciones del mismo nivel de izquierda a derecha (ej. `10 - 5 - 2` = `(10 - 5) - 2`).
+  * **Derecha:** La regla de potencia usa recursividad por la derecha (`R -> F OPOW R`), permitiendo que secuencias como `2 ** 3 ** 2` se evalúen matemáticamente de arriba hacia abajo: `2 ** (3 ** 2)`.
+
+* **Reglas Semánticas (JavaScript inyectado):**
+  Se agruparon los operadores en los tokens `OPAD`, `OPMU` y `OPOW` simplificando la gramática. 
+
+
+
+**Resultado:** El parser ahora construye el árbol de derivación (Parse Tree) correctamente y supera con éxito todas las pruebas unitarias de validación matemática.

@@ -1,36 +1,56 @@
 /* Lexer */
 %lex
 %%
-\s+                                         { /* skip whitespace */; }
-\/\/[^\n]*\n?                               { /* skip comments */; }
-[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?         { return 'NUMBER';       }
-"**"                                        { return 'OP';           }
-[-+*/]                                      { return 'OP';           }
-<<EOF>>                                     { return 'EOF';          }
-.                                           { return 'INVALID';      }
+
+\s+                   /* omitir espacios en blanco */
+\/\/[^\n]*\n?         /* omitir comentarios de una línea */
+[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?   { return 'NUMBER'; }
+"**"                                  { return 'OPOW'; }
+"*"                                   { return 'OPMU'; }
+"/"                                   { return 'OPMU'; }
+"+"                                   { return 'OPAD'; }
+"-"                                   { return 'OPAD'; }
+<<EOF>>                               { return 'EOF'; }
+.                                     { return 'INVALID'; }
+
 /lex
 
 /* Parser */
-%start expressions
-%token NUMBER
+%start L
+
 %%
 
-expressions
-    : expression EOF
-        { return $expression; }
+L
+    : E EOF
+        { return $1; } 
     ;
 
-expression
-    : expression OP term
-        { $$ = operate($OP, $expression, $term); }
-    | term
-        { $$ = $term; }
+E
+    : E OPAD T
+        { $$ = operate($2, $1, $3); }
+    | T
+        { $$ = $1; }
     ;
 
-term
+T
+    : T OPMU R
+        { $$ = operate($2, $1, $3); }
+    | R
+        { $$ = $1; }
+    ;
+
+R
+    : F OPOW R
+        { $$ = operate($2, $1, $3); }
+    | F
+        { $$ = $1; }
+    ;
+
+F
     : NUMBER
         { $$ = Number(yytext); }
     ;
+
 %%
 
 function operate(op, left, right) {
@@ -40,5 +60,8 @@ function operate(op, left, right) {
         case '*': return left * right;
         case '/': return left / right;
         case '**': return Math.pow(left, right);
+        default: throw new Error("Operador desconocido: " + op);
     }
 }
+
+
