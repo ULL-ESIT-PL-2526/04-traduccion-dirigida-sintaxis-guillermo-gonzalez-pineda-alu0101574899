@@ -265,3 +265,18 @@ En lugar de utilizar directivas mágicas de Jison (como `%left` o `%right`), el 
 
 
 **Resultado:** El parser ahora construye el árbol de derivación (Parse Tree) correctamente y supera con éxito todas las pruebas unitarias de validación matemática.
+
+
+### Paso 3: Ampliación de la Suite de Pruebas y Casos de Estrés (Issue #7)
+
+Para garantizar la robustez del nuevo diseño jerárquico de la gramática, se ha expandido el fichero `prec.test.js` con una batería de pruebas que superan las 35 aserciones. Estas pruebas se centran en escenarios donde una implementación simple de izquierda a derecha fallaría sistemáticamente.
+
+#### Puntos clave de los nuevos tests:
+
+* **Validación de Números Decimales:** Se han integrado pruebas con valores flotantes (ej. `0.5 * 10 + 2.5 / 0.5`). Esto asegura que el lexer captura correctamente los decimales y que la función `operate` maneja tipos `Number` de JavaScript sin perder precisión en la estructura sintáctica.
+* **Cadenas de Exponenciación Profunda:** Se han añadido expresiones como `2 ** 2 ** 2 ** 2`. Este caso es crítico para validar la **asociatividad por la derecha**; el parser debe ser capaz de mantener todas las potencias en espera ("shift") hasta alcanzar el último operando, resolviendo el árbol desde las hojas hacia la raíz.
+* **Interacción de Triple Nivel (Precedencia Total):** Se han incluido tests que combinan los tres niveles de la gramática simultáneamente (ej. `2 + 3 * 4 ** 2`). Aquí el parser demuestra su jerarquía completa: primero resuelve la potencia (`R`), luego el producto (`T`) y finalmente la suma (`E`).
+* **Salvaguardas de Asociatividad Izquierda:** Para evitar que los cambios en la potencia afectaran a los operadores básicos, se han reforzado los tests de resta y división encadenada (ej. `100 / 10 * 10 / 10`). Esto garantiza que, mientras la potencia va hacia la derecha, las operaciones aritméticas estándar sigan agrupándose estrictamente de izquierda a derecha.
+* **Expresiones de Gran Longitud:** Se han añadido cálculos realistas con múltiples términos para verificar que el stack del parser gestiona correctamente la memoria y las reducciones sin ambigüedades.
+
+**Resultado:** Tras ejecutar `npm run test`, el parser valida con éxito la totalidad de las aserciones, demostrando que la estructura de la gramática es matemáticamente sólida y resistente a expresiones complejas.
